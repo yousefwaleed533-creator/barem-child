@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم الخاصة</title>
     <meta name="robots" content="noindex, nofollow, noarchive">
-    <meta name="googlebot" content="noindex, nofollow">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
@@ -23,7 +22,7 @@
         }
         .login-box h2 { margin-bottom: 10px; color: #38BDF8; }
         .login-box p { color: #94A3B8; margin-bottom: 25px; font-size: 0.95rem; }
-        input[type="password"] {
+        input {
             width: 100%;
             padding: 14px;
             border-radius: 12px;
@@ -33,6 +32,7 @@
             font-size: 1.1rem;
             text-align: center;
             margin-bottom: 15px;
+            direction: ltr;
         }
         button {
             width: 100%;
@@ -44,9 +44,8 @@
             font-weight: 800;
             font-size: 1.1rem;
             cursor: pointer;
-            transition: 0.2s;
         }
-        button:hover { background: #0284C7; color: white; }
+        button:active { transform: scale(0.98); }
 
         .dashboard { display: none; width: 100%; max-width: 850px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
@@ -76,7 +75,6 @@
             font-size: 0.95rem;
             color: #CBD5E1;
         }
-        .log-item:last-child { border-bottom: none; }
     </style>
 </head>
 <body>
@@ -84,15 +82,15 @@
     <div class="login-box" id="loginBox">
         <h2>🔐 دخول المشرف</h2>
         <p>منطقة محمية - تطبيق برعم الطفل</p>
-        <input type="password" id="passInput" placeholder="أدخل رمز الأمان">
-        <button type="button" onclick="checkLogin()">تأكيد الدخول</button>
+        <input type="password" id="passInput" placeholder="أدخل رمز الأمان" inputmode="numeric">
+        <button id="loginBtn" type="button">تأكيد الدخول</button>
         <p id="errorMsg" style="color: #EF4444; margin-top: 10px; display: none;">رمز الأمان غير صحيح!</p>
     </div>
 
     <div class="dashboard" id="dashboard">
         <div class="header">
             <h1>📊 إحصائيات برعم الطفل</h1>
-            <button type="button" class="refresh-btn" onclick="loadStats()">🔄 تحديث الأرقام</button>
+            <button id="refreshBtn" type="button" class="refresh-btn">🔄 تحديث الأرقام</button>
         </div>
 
         <div class="stats-grid">
@@ -117,72 +115,70 @@
     </div>
 
 <script>
-    const NAMESPACE = 'barem_child_yousef_2026';
+    (function() {
+        const NAMESPACE = 'barem_child_yousef_2026';
+        // تمثيل مشفر للرمز 23122010
+        const CHECK_VAL = [50, 51, 49, 50, 50, 48, 49, 48];
 
-    // دالة تشفير مدمجة تعمل على جميع المتصفحات
-    function encodeSecret(str) {
-        let rev = str.trim().split('').reverse().join('');
-        return btoa(rev + "_YOUSEF_SEC");
-    }
-
-    // الشفرة المقابلة لـ 23122010
-    const TARGET_CODE = "MDEwMjIxMzJfWU9VU0VGX1NFQw==";
-
-    function checkLogin() {
-        const input = document.getElementById('passInput').value;
-        if (encodeSecret(input) === TARGET_CODE) {
-            document.getElementById('loginBox').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            loadStats();
-        } else {
-            document.getElementById('errorMsg').style.display = 'block';
-            document.getElementById('passInput').value = '';
-        }
-    }
-
-    document.getElementById('passInput').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') checkLogin();
-    });
-
-    async function loadStats() {
-        document.getElementById('visitsCount').innerText = '...';
-        document.getElementById('downloadsCount').innerText = '...';
-
-        try {
-            const [vRes, dRes] = await Promise.all([
-                fetch(`https://api.counterapi.dev/v1/${NAMESPACE}/visits`),
-                fetch(`https://api.counterapi.dev/v1/${NAMESPACE}/downloads`)
-            ]);
-            
-            const vData = await vRes.json();
-            const dData = await dRes.json();
-
-            const visits = vData.count || 0;
-            const downloads = dData.count || 0;
-
-            document.getElementById('visitsCount').innerText = visits;
-            document.getElementById('downloadsCount').innerText = downloads;
-
-            const rate = visits > 0 ? Math.round((downloads / visits) * 100) : 0;
-            document.getElementById('conversionRate').innerText = rate + '%';
-        } catch (err) {
-            document.getElementById('visitsCount').innerText = '0';
-            document.getElementById('downloadsCount').innerText = '0';
+        function verify(str) {
+            // تحويل الأرقام العربية إلى إنجليزية تلقائياً إن وجدت
+            const clean = str.trim().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+            if (clean.length !== CHECK_VAL.length) return false;
+            for (let i = 0; i < clean.length; i++) {
+                if (clean.charCodeAt(i) !== CHECK_VAL[i]) return false;
+            }
+            return true;
         }
 
-        const logs = JSON.parse(localStorage.getItem('barem_logs') || '[]');
-        const logsList = document.getElementById('logsList');
-        if (logs.length === 0) {
-            logsList.innerHTML = '<p style="color:#64748B;">لا توجد نشاطات مسجلة محلياً بعد.</p>';
-        } else {
-            logsList.innerHTML = logs.map(l => `
-                <div class="log-item">
-                    <span>${l.type}</span>
-                    <span style="color:#94A3B8; direction:ltr;">${l.time}</span>
-                </div>
-            `).join('');
+        function attemptLogin() {
+            const input = document.getElementById('passInput').value;
+            const err = document.getElementById('errorMsg');
+            if (verify(input)) {
+                document.getElementById('loginBox').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                loadStats();
+            } else {
+                err.style.display = 'block';
+                document.getElementById('passInput').value = '';
+            }
         }
-    }
+
+        document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+        document.getElementById('passInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') attemptLogin();
+        });
+        document.getElementById('refreshBtn').addEventListener('click', loadStats);
+
+        async function loadStats() {
+            document.getElementById('visitsCount').innerText = '...';
+            document.getElementById('downloadsCount').innerText = '...';
+
+            try {
+                const [vRes, dRes] = await Promise.all([
+                    fetch(`https://api.counterapi.dev/v1/${NAMESPACE}/visits`),
+                    fetch(`https://api.counterapi.dev/v1/${NAMESPACE}/downloads`)
+                ]);
+                const vData = await vRes.json();
+                const dData = await dRes.json();
+
+                const visits = vData.count || 0;
+                const downloads = dData.count || 0;
+
+                document.getElementById('visitsCount').innerText = visits;
+                document.getElementById('downloadsCount').innerText = downloads;
+                document.getElementById('conversionRate').innerText = (visits > 0 ? Math.round((downloads / visits) * 100) : 0) + '%';
+            } catch (err) {
+                document.getElementById('visitsCount').innerText = '0';
+                document.getElementById('downloadsCount').innerText = '0';
+            }
+
+            const logs = JSON.parse(localStorage.getItem('barem_logs') || '[]');
+            const logsList = document.getElementById('logsList');
+            logsList.innerHTML = logs.length === 0 
+                ? '<p style="color:#64748B;">لا توجد نشاطات مسجلة محلياً بعد.</p>'
+                : logs.map(l => `<div class="log-item"><span>${l.type}</span><span style="color:#94A3B8; direction:ltr;">${l.time}</span></div>`).join('');
+        }
+    })();
 </script>
 
 </body>
