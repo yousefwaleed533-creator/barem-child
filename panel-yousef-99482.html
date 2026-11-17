@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم الخاصة</title>
-    <!-- منع محركات البحث من أرشفة أو إظهار هذه الصفحة نهائياً -->
     <meta name="robots" content="noindex, nofollow, noarchive">
     <meta name="googlebot" content="noindex, nofollow">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -86,14 +85,14 @@
         <h2>🔐 دخول المشرف</h2>
         <p>منطقة محمية - تطبيق برعم الطفل</p>
         <input type="password" id="passInput" placeholder="أدخل رمز الأمان">
-        <button onclick="checkLogin()">تأكيد الدخول</button>
+        <button type="button" onclick="checkLogin()">تأكيد الدخول</button>
         <p id="errorMsg" style="color: #EF4444; margin-top: 10px; display: none;">رمز الأمان غير صحيح!</p>
     </div>
 
     <div class="dashboard" id="dashboard">
         <div class="header">
             <h1>📊 إحصائيات برعم الطفل</h1>
-            <button class="refresh-btn" onclick="loadStats()">🔄 تحديث الأرقام</button>
+            <button type="button" class="refresh-btn" onclick="loadStats()">🔄 تحديث الأرقام</button>
         </div>
 
         <div class="stats-grid">
@@ -118,22 +117,20 @@
     </div>
 
 <script>
-    // البصمة المشفرة SHA-256 لكلمة السر الجديدة
-    const SECRET_HASH = "e25b789a250a69533528c682b270cf6dc74c31e2c5258d76b332ed9be1a1e042";
     const NAMESPACE = 'barem_child_yousef_2026';
 
-    async function sha256(message) {
-        const msgBuffer = new TextEncoder().encode(message);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    // دالة تشفير مدمجة تعمل على جميع المتصفحات
+    function encodeSecret(str) {
+        let rev = str.trim().split('').reverse().join('');
+        return btoa(rev + "_YOUSEF_SEC");
     }
 
-    async function checkLogin() {
+    // الشفرة المقابلة لـ 23122010
+    const TARGET_CODE = "MDEwMjIxMzJfWU9VU0VGX1NFQw==";
+
+    function checkLogin() {
         const input = document.getElementById('passInput').value;
-        const inputHash = await sha256(input);
-        
-        if (inputHash === SECRET_HASH) {
+        if (encodeSecret(input) === TARGET_CODE) {
             document.getElementById('loginBox').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
             loadStats();
@@ -175,4 +172,18 @@
 
         const logs = JSON.parse(localStorage.getItem('barem_logs') || '[]');
         const logsList = document.getElementById('logsList');
-        if (logs.length
+        if (logs.length === 0) {
+            logsList.innerHTML = '<p style="color:#64748B;">لا توجد نشاطات مسجلة محلياً بعد.</p>';
+        } else {
+            logsList.innerHTML = logs.map(l => `
+                <div class="log-item">
+                    <span>${l.type}</span>
+                    <span style="color:#94A3B8; direction:ltr;">${l.time}</span>
+                </div>
+            `).join('');
+        }
+    }
+</script>
+
+</body>
+</html>
